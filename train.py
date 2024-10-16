@@ -4,10 +4,9 @@ from torch import nn
 from torch.nn import DataParallel
 from datetime import datetime
 from config import BATCH_SIZE, SAVE_FREQ, RESUME, SAVE_DIR, TEST_FREQ, TOTAL_EPOCH, MODEL_PRE, GPU
-from config import CASIA_DATA_DIR, LFW_DATA_DIR
+from config import LFW_DATA_DIR
 from core import model
 from core.utils import init_log
-from dataloader.CASIA_Face_loader import CASIA_Face
 from dataloader.LFW_loader import LFW
 from torch.optim import lr_scheduler
 import torch.optim as optim
@@ -15,7 +14,7 @@ import time
 from lfw_eval import parseList, evaluation_10_fold
 import numpy as np
 import scipy.io
-
+from dataloader.your_rec_data_loader import MXNetDataset  # Thay vì CASIA_Face_loader
 
 def define_gpu():
     # gpu init
@@ -49,7 +48,13 @@ if __name__ == '__main__':
 
     # define trainloader and testloader
     print('defining casia dataloader...')
-    trainset = CASIA_Face(root="/kaggle/input/casia-webface/casia-webface")
+    
+    # Đường dẫn tới tệp .rec và .idx
+    rec_path = '/kaggle/input/casia-webface/casia-webface/train.rec'
+    idx_path = '/kaggle/input/casia-webface/casia-webface/train.idx'
+
+    # Tạo DataLoader từ MXNetDataset
+    trainset = MXNetDataset(rec_path=rec_path, idx_path=idx_path)
     trainloader = torch.utils.data.DataLoader(trainset, batch_size=BATCH_SIZE,
                                               shuffle=True, num_workers=8, drop_last=False)
 
@@ -95,7 +100,6 @@ if __name__ == '__main__':
     best_acc = 0.0
     best_epoch = 0
     for epoch in range(start_epoch, TOTAL_EPOCH+1):
-        # exp_lr_scheduler.step()
         optimizer4nn.step()
         optimzer4center.step()       
         # train model
@@ -108,7 +112,6 @@ if __name__ == '__main__':
         for data in trainloader:
             img, label = data[0].cuda(), data[1].cuda()
             batch_size = img.size(0)
-            # optimizer_ft.zero_grad() 
 
             raw_logits = net(img)
 
@@ -128,8 +131,7 @@ if __name__ == '__main__':
 
         train_total_loss = train_total_loss / total
         time_elapsed = time.time() - since
-        loss_msg = '    total_loss: {:.4f} time: {:.0f}m {:.0f}s'\
-            .format(train_total_loss, time_elapsed // 60, time_elapsed % 60)
+        loss_msg = '    total_loss: {:.4f} time: {:.0f}m {:.0f}s'.format(train_total_loss, time_elapsed // 60, time_elapsed % 60)
         _print(loss_msg)
 
         # test model on lfw

@@ -5,6 +5,8 @@ from sklearn import preprocessing
 import torch
 #ImageFile.LOAD_TRUNCATED_IMAGES = True
 from your_rec_data_loader import MXNetDataset
+from dataloader.your_rec_data_loader import MXNetDataset
+
 import sys
 sys.path.append("..")
 

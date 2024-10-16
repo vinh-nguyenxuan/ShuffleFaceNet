@@ -49,7 +49,7 @@ if __name__ == '__main__':
 
     # define trainloader and testloader
     print('defining casia dataloader...')
-    trainset = CASIA_Face(root=CASIA_DATA_DIR)
+    trainset = CASIA_Face(root="/kaggle/input/casia-webface/casia-webface")
     trainloader = torch.utils.data.DataLoader(trainset, batch_size=BATCH_SIZE,
                                               shuffle=True, num_workers=8, drop_last=False)
 

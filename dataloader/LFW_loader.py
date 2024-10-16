@@ -35,7 +35,7 @@ class LFW(object):
 
 
 if __name__ == '__main__':
-    data_dir = '/home/users/keiller/recfaces/datasets/LFW/'
+    data_dir = '/kaggle/input/valuation/lfw/lfw'
     from lfw_eval import parseList
     nl, nr, folds, flags = parseList(root=data_dir)
     dataset = LFW(nl, nr)

@@ -8,7 +8,7 @@ SAVE_DIR = './model'
 MODEL_PRE = 'CASIA_ShuffleFaceNet_'
 
 
-CASIA_DATA_DIR = 'C:/Users/TUF/Downloads/faces_emore/' #'/'CASIA-WebFace
-LFW_DATA_DIR = 'C:/Users/TUF/Downloads/faces_emore/faces_emore_112x112_folders/'
+CASIA_DATA_DIR = '/kaggle/input/casia-webface/casia-webface' #'/'CASIA-WebFace
+LFW_DATA_DIR = '/kaggle/input/valuation/lfw/lfw'
 
 GPU = 0,1,2

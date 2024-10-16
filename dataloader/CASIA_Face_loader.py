@@ -45,7 +45,7 @@ class CASIA_Face(object):
 
 
 if __name__ == '__main__':
-    data_dir = '/home/users/matheusb/recfaces/datasets/CASIA-WebFace/'
+    data_dir = '/kaggle/input/casia-webface/casia-webface'
     dataset = CASIA_Face(root=data_dir)
     trainloader = torch.utils.data.DataLoader(dataset, batch_size=32, shuffle=True, num_workers=8, drop_last=False)
     print(len(dataset))

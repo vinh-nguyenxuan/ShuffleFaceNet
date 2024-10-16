@@ -1,5 +1,4 @@
 import sys
-# import caffe
 import os
 import numpy as np
 import cv2
@@ -12,11 +11,12 @@ from core import model
 from dataloader.LFW_loader import LFW
 from config import LFW_DATA_DIR
 import argparse
+import pandas as pd  # Thêm pandas để đọc CSV
 
 
 def parseList(root):
-    with open(os.path.join(root, 'pairs.txt')) as f:
-        pairs = f.read().splitlines()[1:]
+    # Đọc tệp CSV thay vì TXT
+    pairs_df = pd.read_csv(os.path.join(root, 'pairs.csv'))  # Đọc tệp CSV
     
     # ORG
     folder_name = 'lfw'
@@ -24,25 +24,25 @@ def parseList(root):
     nameRs = []
     folds = []
     flags = []
-    for i, p in enumerate(pairs):
-        p = p.split('\t')
-        if len(p) == 3:
-            nameL = os.path.join(root, folder_name, p[0], p[0] + '_' + '{:04}.jpg'.format(int(p[1])))
-            nameR = os.path.join(root, folder_name, p[0], p[0] + '_' + '{:04}.jpg'.format(int(p[2])))
+    
+    # Xử lý từng hàng của CSV (giả sử cấu trúc tương tự với TXT: có 3 hoặc 4 cột)
+    for i, row in pairs_df.iterrows():
+        if len(row) == 3:
+            nameL = os.path.join(root, folder_name, row[0], row[0] + '_' + '{:04}.jpg'.format(int(row[1])))
+            nameR = os.path.join(root, folder_name, row[0], row[0] + '_' + '{:04}.jpg'.format(int(row[2])))
             fold = i // 600
             flag = 1
-        elif len(p) == 4:
-            nameL = os.path.join(root, folder_name, p[0], p[0] + '_' + '{:04}.jpg'.format(int(p[1])))
-            nameR = os.path.join(root, folder_name, p[2], p[2] + '_' + '{:04}.jpg'.format(int(p[3])))
+        elif len(row) == 4:
+            nameL = os.path.join(root, folder_name, row[0], row[0] + '_' + '{:04}.jpg'.format(int(row[1])))
+            nameR = os.path.join(root, folder_name, row[2], row[2] + '_' + '{:04}.jpg'.format(int(row[3])))
             fold = i // 600
             flag = -1
         nameLs.append(nameL)
         nameRs.append(nameR)
         folds.append(fold)
         flags.append(flag)
-    # print(nameLs)
+    
     return [nameLs, nameRs, folds, flags]
-
 
 
 def getAccuracy(scores, flags, threshold):
@@ -90,20 +90,12 @@ def evaluation_10_fold(root='./result/pytorch_result.mat'):
         featureRs = featureRs / np.expand_dims(np.sqrt(np.sum(np.power(featureRs, 2), 1)), 1)
 
         scores = np.sum(np.multiply(featureLs, featureRs), 1)
-        # if len(scores)==0 : 
-        #     continue;
 
         threshold = getThreshold(scores[valFold[0]], flags[valFold[0]], 10000)
-        # print('Fold', i, 'Threshold', threshold)
         
         ACCs[i] = getAccuracy(scores[testFold[0]], flags[testFold[0]], threshold)
-        # print('Fold', i, 'Accuracy', ACCs[i])
     
-    #     print('{}    {:.2f}'.format(i+1, ACCs[i] * 100))
-    # print('--------')
-    # print('AVE    {:.2f}'.format(np.mean(ACCs) * 100))
     return ACCs
-
 
 
 def getFeatureFromTorch(lfw_dir, feature_save_dir, resume=None, gpu=True):
@@ -116,11 +108,8 @@ def getFeatureFromTorch(lfw_dir, feature_save_dir, resume=None, gpu=True):
     net.eval()
     nl, nr, flods, flags = parseList(lfw_dir)
     lfw_dataset = LFW(nl, nr)
-    # lfw_loader = torch.utils.data.DataLoader(lfw_dataset, batch_size=32,
-    #                                           shuffle=False, num_workers=8, drop_last=False)
 
-    lfw_loader = torch.utils.data.DataLoader(lfw_dataset, batch_size=32,
-                                              shuffle=False, num_workers=2, drop_last=False)
+    lfw_loader = torch.utils.data.DataLoader(lfw_dataset, batch_size=32, shuffle=False, num_workers=2, drop_last=False)
 
     featureLs = None
     featureRs = None
@@ -147,60 +136,18 @@ def getFeatureFromTorch(lfw_dir, feature_save_dir, resume=None, gpu=True):
             featureRs = featureR
         else:
             featureRs = np.concatenate((featureRs, featureR), 0)
-        # featureLs.append(featureL)
-        # featureRs.append(featureR)
 
     result = {'fl': featureLs, 'fr': featureRs, 'fold': flods, 'flag': flags}
     scipy.io.savemat(feature_save_dir, result)
 
 
-# def getFeatureFromCaffe(gpu=True):
-#     if gpu:
-#         caffe.set_mode_gpu()
-#         caffe.set_device(0)
-#     else:
-#         caffe.set_mode_cpu()
-#     # caffe.reset_all()
-#     model = '/home/xiaocc/Documents/caffe_project/sphereface/train/code/sphereface_deploy.prototxt'
-#     weights = '/home/xiaocc/Documents/caffe_project/sphereface/train/result/sphereface_model.caffemodel'
-#     net = caffe.Net(model, weights, caffe.TEST)
-#
-#     nl, nr, flods, flags = parseList()
-#
-#     featureLs = []
-#     featureRs = []
-#     for i in range(len(nl)):
-#         print('extracing deep features from the {}th face pair ...'.format(i))
-#         featureL = extractDeepFeature(nl[i], net)[0]
-#         featureR = extractDeepFeature(nr[i], net)[0]
-#         featureLs.append(featureL)
-#         featureRs.append(featureR)
-#     result = {'fl': featureLs, 'fr': featureRs, 'fold': flods, 'flag': flags}
-#     scipy.io.savemat('caffe_result.mat', result)
-#
-# def extractDeepFeature(f, net, h=112, w=96):
-#     img = cv2.imread(f)
-#     img = (img - 127.5) / 128
-#     img = img.transpose((2, 0, 1))
-#     net.blobs['data'].reshape(1, 3, h, w)
-#     net.blobs['data'].data[0, ...] = img
-#     res = copy.deepcopy(net.forward()['fc5'])
-#     net.blobs['data'].data[0, ...] = img[:, :, ::-1]
-#     res_ = copy.deepcopy(net.forward()['fc5'])
-#     r = np.concatenate((res, res_), 1)
-#     return r
-
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Testing')
     parser.add_argument('--lfw_dir', type=str, default=LFW_DATA_DIR, help='The path of lfw data')
-    parser.add_argument('--resume', type=str, default='./model/best/060.ckpt',
-                        help='The path pf save model')
-    parser.add_argument('--feature_save_dir', type=str, default='./result/best_result.mat',
-                        help='The path of the extract features save, must be .mat file')
+    parser.add_argument('--resume', type=str, default='./model/best/060.ckpt', help='The path pf save model')
+    parser.add_argument('--feature_save_dir', type=str, default='./result/best_result.mat', help='The path of the extract features save, must be .mat file')
     args = parser.parse_args()
 
-
-    # getFeatureFromCaffe()
     getFeatureFromTorch(args.lfw_dir, args.feature_save_dir, args.resume, False)
     ACCs = evaluation_10_fold(args.feature_save_dir)
     

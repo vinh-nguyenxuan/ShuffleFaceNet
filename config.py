@@ -9,6 +9,6 @@ MODEL_PRE = 'CASIA_ShuffleFaceNet_'
 
 
 CASIA_DATA_DIR = '/kaggle/input/casia-webface/casia-webface' #'/'CASIA-WebFace
-LFW_DATA_DIR = '/kaggle/input/faces-in-the-wild'
+LFW_DATA_DIR = '/kaggle/input/lfw-dataset/lfw2'
 
 GPU = 0,1,2
